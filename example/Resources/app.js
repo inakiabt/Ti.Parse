@@ -1,12 +1,25 @@
-/* 
+/*
  * PARSE SAMPLE CODE
  * from: https://parse.com/apps/quickstart?rf=js#js/blank
  */
 var _ = require('lib/underscore');
-require('lib/ti.parse');
+Ti.include('lib/ti-parse.js');
+Ti.API.debug(JSON.stringify(Parse));
 //Get your  Keys here: https://www.parse.com/apps/quickstart#js/blank
-Parse.initialize("XXXXXX", "XXXXXXXX");
+Parse.initialize("vz6AUbXU8ZPkhHJj2LCC9siVIUHtyQR8zAANj4Sf", "nKnwx2XsluLLXEhzhcjCI9uXFFJsGEemKg189Rtl");
 
+Ti.API.debug(Parse.User.current())
+
+if (Parse.User.current() && Parse.User.current().authenticated())
+{
+	Parse.User.current().set('name', 'Iñaki' + new Date().getTime());
+	Parse.User.current().save().then(function(user){
+		alert(user.get('name'))
+	},
+	function(error){
+		alert(error);
+	});
+}
 
 var loginWin = Ti.UI.createWindow({
 	backgroundColor: '#0076C4'
@@ -72,25 +85,16 @@ usernameField.focus();
 
 
 function init(){
-
+	Ti.API.debug(Parse.User.current())
 	// this sets the background color of the master UIView (when there are no windows/tab groups on it)
 	Titanium.UI.setBackgroundColor('#000');
-	
-	// create tab group
-	var tabGroup = Titanium.UI.createTabGroup();
-	
-	
+
 	//
 	// create base UI tab and root window
 	//
-	var win1 = Titanium.UI.createWindow({  
+	var win1 = Titanium.UI.createWindow({
 	    title:'Tab 1',
 	    backgroundColor:'#fff'
-	});
-	var tab1 = Titanium.UI.createTab({  
-	    icon:'KS_nav_views.png',
-	    title:'Tab 1',
-	    window:win1
 	});
 
 	var label1 = Titanium.UI.createLabel({
@@ -100,36 +104,8 @@ function init(){
 		textAlign:'center',
 		width:'auto'
 	});
-	
+
 	win1.add(label1);
-	
-	//
-	// create controls tab and root window
-	//
-	var win2 = Titanium.UI.createWindow({  
-	    title:'Tab 2',
-	    backgroundColor:'#fff',
-	    url:'win2.js'
-	});
-	var tab2 = Titanium.UI.createTab({  
-	    icon:'KS_nav_ui.png',
-	    title:'Tab 2',
-	    window:win2
-	});
-	
-	
-	
-	win2.add(label2);
-	
-	
-	
-	//
-	//  add tabs
-	//
-	tabGroup.addTab(tab1);  
-	tabGroup.addTab(tab2);  
-	
-	
-	// open tab group
-	tabGroup.open();
+
+	win1.open();
 }

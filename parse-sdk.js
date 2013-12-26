@@ -1,7 +1,7 @@
 /*!
  * Parse JavaScript SDK
- * Version: 1.2.12
- * Built: Wed Sep 11 2013 11:52:54
+ * Version: 1.2.15
+ * Built: Mon Dec 16 2013 14:42:11
  * http://parse.com
  *
  * Copyright 2013 Parse, Inc.
@@ -13,1234 +13,8 @@
  */
 (function(root) {
   root.Parse = root.Parse || {};
-  root.Parse.VERSION = "js1.2.12";
+  root.Parse.VERSION = "js1.2.15";
 }(this));
-//     Underscore.js 1.4.4
-//     http://underscorejs.org
-//     (c) 2009-2013 Jeremy Ashkenas, DocumentCloud Inc.
-//     Underscore may be freely distributed under the MIT license.
-
-(function() {
-
-  // Baseline setup
-  // --------------
-
-  // Establish the root object, `window` in the browser, or `global` on the server.
-  var root = this;
-
-  // Save the previous value of the `_` variable.
-  var previousUnderscore = root._;
-
-  // Establish the object that gets returned to break out of a loop iteration.
-  var breaker = {};
-
-  // Save bytes in the minified (but not gzipped) version:
-  var ArrayProto = Array.prototype, ObjProto = Object.prototype, FuncProto = Function.prototype;
-
-  // Create quick reference variables for speed access to core prototypes.
-  var push             = ArrayProto.push,
-      slice            = ArrayProto.slice,
-      concat           = ArrayProto.concat,
-      toString         = ObjProto.toString,
-      hasOwnProperty   = ObjProto.hasOwnProperty;
-
-  // All **ECMAScript 5** native function implementations that we hope to use
-  // are declared here.
-  var
-    nativeForEach      = ArrayProto.forEach,
-    nativeMap          = ArrayProto.map,
-    nativeReduce       = ArrayProto.reduce,
-    nativeReduceRight  = ArrayProto.reduceRight,
-    nativeFilter       = ArrayProto.filter,
-    nativeEvery        = ArrayProto.every,
-    nativeSome         = ArrayProto.some,
-    nativeIndexOf      = ArrayProto.indexOf,
-    nativeLastIndexOf  = ArrayProto.lastIndexOf,
-    nativeIsArray      = Array.isArray,
-    nativeKeys         = Object.keys,
-    nativeBind         = FuncProto.bind;
-
-  // Create a safe reference to the Underscore object for use below.
-  var _ = function(obj) {
-    if (obj instanceof _) return obj;
-    if (!(this instanceof _)) return new _(obj);
-    this._wrapped = obj;
-  };
-
-  // Export the Underscore object for **Node.js**, with
-  // backwards-compatibility for the old `require()` API. If we're in
-  // the browser, add `_` as a global object via a string identifier,
-  // for Closure Compiler "advanced" mode.
-  if (typeof exports !== 'undefined') {
-    if (typeof module !== 'undefined' && module.exports) {
-      exports = module.exports = _;
-    }
-    exports._ = _;
-  } else {
-    root._ = _;
-  }
-
-  // Current version.
-  _.VERSION = '1.4.4';
-
-  // Collection Functions
-  // --------------------
-
-  // The cornerstone, an `each` implementation, aka `forEach`.
-  // Handles objects with the built-in `forEach`, arrays, and raw objects.
-  // Delegates to **ECMAScript 5**'s native `forEach` if available.
-  var each = _.each = _.forEach = function(obj, iterator, context) {
-    if (obj == null) return;
-    if (nativeForEach && obj.forEach === nativeForEach) {
-      obj.forEach(iterator, context);
-    } else if (obj.length === +obj.length) {
-      for (var i = 0, l = obj.length; i < l; i++) {
-        if (iterator.call(context, obj[i], i, obj) === breaker) return;
-      }
-    } else {
-      for (var key in obj) {
-        if (_.has(obj, key)) {
-          if (iterator.call(context, obj[key], key, obj) === breaker) return;
-        }
-      }
-    }
-  };
-
-  // Return the results of applying the iterator to each element.
-  // Delegates to **ECMAScript 5**'s native `map` if available.
-  _.map = _.collect = function(obj, iterator, context) {
-    var results = [];
-    if (obj == null) return results;
-    if (nativeMap && obj.map === nativeMap) return obj.map(iterator, context);
-    each(obj, function(value, index, list) {
-      results[results.length] = iterator.call(context, value, index, list);
-    });
-    return results;
-  };
-
-  var reduceError = 'Reduce of empty array with no initial value';
-
-  // **Reduce** builds up a single result from a list of values, aka `inject`,
-  // or `foldl`. Delegates to **ECMAScript 5**'s native `reduce` if available.
-  _.reduce = _.foldl = _.inject = function(obj, iterator, memo, context) {
-    var initial = arguments.length > 2;
-    if (obj == null) obj = [];
-    if (nativeReduce && obj.reduce === nativeReduce) {
-      if (context) iterator = _.bind(iterator, context);
-      return initial ? obj.reduce(iterator, memo) : obj.reduce(iterator);
-    }
-    each(obj, function(value, index, list) {
-      if (!initial) {
-        memo = value;
-        initial = true;
-      } else {
-        memo = iterator.call(context, memo, value, index, list);
-      }
-    });
-    if (!initial) throw new TypeError(reduceError);
-    return memo;
-  };
-
-  // The right-associative version of reduce, also known as `foldr`.
-  // Delegates to **ECMAScript 5**'s native `reduceRight` if available.
-  _.reduceRight = _.foldr = function(obj, iterator, memo, context) {
-    var initial = arguments.length > 2;
-    if (obj == null) obj = [];
-    if (nativeReduceRight && obj.reduceRight === nativeReduceRight) {
-      if (context) iterator = _.bind(iterator, context);
-      return initial ? obj.reduceRight(iterator, memo) : obj.reduceRight(iterator);
-    }
-    var length = obj.length;
-    if (length !== +length) {
-      var keys = _.keys(obj);
-      length = keys.length;
-    }
-    each(obj, function(value, index, list) {
-      index = keys ? keys[--length] : --length;
-      if (!initial) {
-        memo = obj[index];
-        initial = true;
-      } else {
-        memo = iterator.call(context, memo, obj[index], index, list);
-      }
-    });
-    if (!initial) throw new TypeError(reduceError);
-    return memo;
-  };
-
-  // Return the first value which passes a truth test. Aliased as `detect`.
-  _.find = _.detect = function(obj, iterator, context) {
-    var result;
-    any(obj, function(value, index, list) {
-      if (iterator.call(context, value, index, list)) {
-        result = value;
-        return true;
-      }
-    });
-    return result;
-  };
-
-  // Return all the elements that pass a truth test.
-  // Delegates to **ECMAScript 5**'s native `filter` if available.
-  // Aliased as `select`.
-  _.filter = _.select = function(obj, iterator, context) {
-    var results = [];
-    if (obj == null) return results;
-    if (nativeFilter && obj.filter === nativeFilter) return obj.filter(iterator, context);
-    each(obj, function(value, index, list) {
-      if (iterator.call(context, value, index, list)) results[results.length] = value;
-    });
-    return results;
-  };
-
-  // Return all the elements for which a truth test fails.
-  _.reject = function(obj, iterator, context) {
-    return _.filter(obj, function(value, index, list) {
-      return !iterator.call(context, value, index, list);
-    }, context);
-  };
-
-  // Determine whether all of the elements match a truth test.
-  // Delegates to **ECMAScript 5**'s native `every` if available.
-  // Aliased as `all`.
-  _.every = _.all = function(obj, iterator, context) {
-    iterator || (iterator = _.identity);
-    var result = true;
-    if (obj == null) return result;
-    if (nativeEvery && obj.every === nativeEvery) return obj.every(iterator, context);
-    each(obj, function(value, index, list) {
-      if (!(result = result && iterator.call(context, value, index, list))) return breaker;
-    });
-    return !!result;
-  };
-
-  // Determine if at least one element in the object matches a truth test.
-  // Delegates to **ECMAScript 5**'s native `some` if available.
-  // Aliased as `any`.
-  var any = _.some = _.any = function(obj, iterator, context) {
-    iterator || (iterator = _.identity);
-    var result = false;
-    if (obj == null) return result;
-    if (nativeSome && obj.some === nativeSome) return obj.some(iterator, context);
-    each(obj, function(value, index, list) {
-      if (result || (result = iterator.call(context, value, index, list))) return breaker;
-    });
-    return !!result;
-  };
-
-  // Determine if the array or object contains a given value (using `===`).
-  // Aliased as `include`.
-  _.contains = _.include = function(obj, target) {
-    if (obj == null) return false;
-    if (nativeIndexOf && obj.indexOf === nativeIndexOf) return obj.indexOf(target) != -1;
-    return any(obj, function(value) {
-      return value === target;
-    });
-  };
-
-  // Invoke a method (with arguments) on every item in a collection.
-  _.invoke = function(obj, method) {
-    var args = slice.call(arguments, 2);
-    var isFunc = _.isFunction(method);
-    return _.map(obj, function(value) {
-      return (isFunc ? method : value[method]).apply(value, args);
-    });
-  };
-
-  // Convenience version of a common use case of `map`: fetching a property.
-  _.pluck = function(obj, key) {
-    return _.map(obj, function(value){ return value[key]; });
-  };
-
-  // Convenience version of a common use case of `filter`: selecting only objects
-  // containing specific `key:value` pairs.
-  _.where = function(obj, attrs, first) {
-    if (_.isEmpty(attrs)) return first ? null : [];
-    return _[first ? 'find' : 'filter'](obj, function(value) {
-      for (var key in attrs) {
-        if (attrs[key] !== value[key]) return false;
-      }
-      return true;
-    });
-  };
-
-  // Convenience version of a common use case of `find`: getting the first object
-  // containing specific `key:value` pairs.
-  _.findWhere = function(obj, attrs) {
-    return _.where(obj, attrs, true);
-  };
-
-  // Return the maximum element or (element-based computation).
-  // Can't optimize arrays of integers longer than 65,535 elements.
-  // See: https://bugs.webkit.org/show_bug.cgi?id=80797
-  _.max = function(obj, iterator, context) {
-    if (!iterator && _.isArray(obj) && obj[0] === +obj[0] && obj.length < 65535) {
-      return Math.max.apply(Math, obj);
-    }
-    if (!iterator && _.isEmpty(obj)) return -Infinity;
-    var result = {computed : -Infinity, value: -Infinity};
-    each(obj, function(value, index, list) {
-      var computed = iterator ? iterator.call(context, value, index, list) : value;
-      computed >= result.computed && (result = {value : value, computed : computed});
-    });
-    return result.value;
-  };
-
-  // Return the minimum element (or element-based computation).
-  _.min = function(obj, iterator, context) {
-    if (!iterator && _.isArray(obj) && obj[0] === +obj[0] && obj.length < 65535) {
-      return Math.min.apply(Math, obj);
-    }
-    if (!iterator && _.isEmpty(obj)) return Infinity;
-    var result = {computed : Infinity, value: Infinity};
-    each(obj, function(value, index, list) {
-      var computed = iterator ? iterator.call(context, value, index, list) : value;
-      computed < result.computed && (result = {value : value, computed : computed});
-    });
-    return result.value;
-  };
-
-  // Shuffle an array.
-  _.shuffle = function(obj) {
-    var rand;
-    var index = 0;
-    var shuffled = [];
-    each(obj, function(value) {
-      rand = _.random(index++);
-      shuffled[index - 1] = shuffled[rand];
-      shuffled[rand] = value;
-    });
-    return shuffled;
-  };
-
-  // An internal function to generate lookup iterators.
-  var lookupIterator = function(value) {
-    return _.isFunction(value) ? value : function(obj){ return obj[value]; };
-  };
-
-  // Sort the object's values by a criterion produced by an iterator.
-  _.sortBy = function(obj, value, context) {
-    var iterator = lookupIterator(value);
-    return _.pluck(_.map(obj, function(value, index, list) {
-      return {
-        value : value,
-        index : index,
-        criteria : iterator.call(context, value, index, list)
-      };
-    }).sort(function(left, right) {
-      var a = left.criteria;
-      var b = right.criteria;
-      if (a !== b) {
-        if (a > b || a === void 0) return 1;
-        if (a < b || b === void 0) return -1;
-      }
-      return left.index < right.index ? -1 : 1;
-    }), 'value');
-  };
-
-  // An internal function used for aggregate "group by" operations.
-  var group = function(obj, value, context, behavior) {
-    var result = {};
-    var iterator = lookupIterator(value || _.identity);
-    each(obj, function(value, index) {
-      var key = iterator.call(context, value, index, obj);
-      behavior(result, key, value);
-    });
-    return result;
-  };
-
-  // Groups the object's values by a criterion. Pass either a string attribute
-  // to group by, or a function that returns the criterion.
-  _.groupBy = function(obj, value, context) {
-    return group(obj, value, context, function(result, key, value) {
-      (_.has(result, key) ? result[key] : (result[key] = [])).push(value);
-    });
-  };
-
-  // Counts instances of an object that group by a certain criterion. Pass
-  // either a string attribute to count by, or a function that returns the
-  // criterion.
-  _.countBy = function(obj, value, context) {
-    return group(obj, value, context, function(result, key) {
-      if (!_.has(result, key)) result[key] = 0;
-      result[key]++;
-    });
-  };
-
-  // Use a comparator function to figure out the smallest index at which
-  // an object should be inserted so as to maintain order. Uses binary search.
-  _.sortedIndex = function(array, obj, iterator, context) {
-    iterator = iterator == null ? _.identity : lookupIterator(iterator);
-    var value = iterator.call(context, obj);
-    var low = 0, high = array.length;
-    while (low < high) {
-      var mid = (low + high) >>> 1;
-      iterator.call(context, array[mid]) < value ? low = mid + 1 : high = mid;
-    }
-    return low;
-  };
-
-  // Safely convert anything iterable into a real, live array.
-  _.toArray = function(obj) {
-    if (!obj) return [];
-    if (_.isArray(obj)) return slice.call(obj);
-    if (obj.length === +obj.length) return _.map(obj, _.identity);
-    return _.values(obj);
-  };
-
-  // Return the number of elements in an object.
-  _.size = function(obj) {
-    if (obj == null) return 0;
-    return (obj.length === +obj.length) ? obj.length : _.keys(obj).length;
-  };
-
-  // Array Functions
-  // ---------------
-
-  // Get the first element of an array. Passing **n** will return the first N
-  // values in the array. Aliased as `head` and `take`. The **guard** check
-  // allows it to work with `_.map`.
-  _.first = _.head = _.take = function(array, n, guard) {
-    if (array == null) return void 0;
-    return (n != null) && !guard ? slice.call(array, 0, n) : array[0];
-  };
-
-  // Returns everything but the last entry of the array. Especially useful on
-  // the arguments object. Passing **n** will return all the values in
-  // the array, excluding the last N. The **guard** check allows it to work with
-  // `_.map`.
-  _.initial = function(array, n, guard) {
-    return slice.call(array, 0, array.length - ((n == null) || guard ? 1 : n));
-  };
-
-  // Get the last element of an array. Passing **n** will return the last N
-  // values in the array. The **guard** check allows it to work with `_.map`.
-  _.last = function(array, n, guard) {
-    if (array == null) return void 0;
-    if ((n != null) && !guard) {
-      return slice.call(array, Math.max(array.length - n, 0));
-    } else {
-      return array[array.length - 1];
-    }
-  };
-
-  // Returns everything but the first entry of the array. Aliased as `tail` and `drop`.
-  // Especially useful on the arguments object. Passing an **n** will return
-  // the rest N values in the array. The **guard**
-  // check allows it to work with `_.map`.
-  _.rest = _.tail = _.drop = function(array, n, guard) {
-    return slice.call(array, (n == null) || guard ? 1 : n);
-  };
-
-  // Trim out all falsy values from an array.
-  _.compact = function(array) {
-    return _.filter(array, _.identity);
-  };
-
-  // Internal implementation of a recursive `flatten` function.
-  var flatten = function(input, shallow, output) {
-    each(input, function(value) {
-      if (_.isArray(value)) {
-        shallow ? push.apply(output, value) : flatten(value, shallow, output);
-      } else {
-        output.push(value);
-      }
-    });
-    return output;
-  };
-
-  // Return a completely flattened version of an array.
-  _.flatten = function(array, shallow) {
-    return flatten(array, shallow, []);
-  };
-
-  // Return a version of the array that does not contain the specified value(s).
-  _.without = function(array) {
-    return _.difference(array, slice.call(arguments, 1));
-  };
-
-  // Produce a duplicate-free version of the array. If the array has already
-  // been sorted, you have the option of using a faster algorithm.
-  // Aliased as `unique`.
-  _.uniq = _.unique = function(array, isSorted, iterator, context) {
-    if (_.isFunction(isSorted)) {
-      context = iterator;
-      iterator = isSorted;
-      isSorted = false;
-    }
-    var initial = iterator ? _.map(array, iterator, context) : array;
-    var results = [];
-    var seen = [];
-    each(initial, function(value, index) {
-      if (isSorted ? (!index || seen[seen.length - 1] !== value) : !_.contains(seen, value)) {
-        seen.push(value);
-        results.push(array[index]);
-      }
-    });
-    return results;
-  };
-
-  // Produce an array that contains the union: each distinct element from all of
-  // the passed-in arrays.
-  _.union = function() {
-    return _.uniq(concat.apply(ArrayProto, arguments));
-  };
-
-  // Produce an array that contains every item shared between all the
-  // passed-in arrays.
-  _.intersection = function(array) {
-    var rest = slice.call(arguments, 1);
-    return _.filter(_.uniq(array), function(item) {
-      return _.every(rest, function(other) {
-        return _.indexOf(other, item) >= 0;
-      });
-    });
-  };
-
-  // Take the difference between one array and a number of other arrays.
-  // Only the elements present in just the first array will remain.
-  _.difference = function(array) {
-    var rest = concat.apply(ArrayProto, slice.call(arguments, 1));
-    return _.filter(array, function(value){ return !_.contains(rest, value); });
-  };
-
-  // Zip together multiple lists into a single array -- elements that share
-  // an index go together.
-  _.zip = function() {
-    var args = slice.call(arguments);
-    var length = _.max(_.pluck(args, 'length'));
-    var results = new Array(length);
-    for (var i = 0; i < length; i++) {
-      results[i] = _.pluck(args, "" + i);
-    }
-    return results;
-  };
-
-  // Converts lists into objects. Pass either a single array of `[key, value]`
-  // pairs, or two parallel arrays of the same length -- one of keys, and one of
-  // the corresponding values.
-  _.object = function(list, values) {
-    if (list == null) return {};
-    var result = {};
-    for (var i = 0, l = list.length; i < l; i++) {
-      if (values) {
-        result[list[i]] = values[i];
-      } else {
-        result[list[i][0]] = list[i][1];
-      }
-    }
-    return result;
-  };
-
-  // If the browser doesn't supply us with indexOf (I'm looking at you, **MSIE**),
-  // we need this function. Return the position of the first occurrence of an
-  // item in an array, or -1 if the item is not included in the array.
-  // Delegates to **ECMAScript 5**'s native `indexOf` if available.
-  // If the array is large and already in sort order, pass `true`
-  // for **isSorted** to use binary search.
-  _.indexOf = function(array, item, isSorted) {
-    if (array == null) return -1;
-    var i = 0, l = array.length;
-    if (isSorted) {
-      if (typeof isSorted == 'number') {
-        i = (isSorted < 0 ? Math.max(0, l + isSorted) : isSorted);
-      } else {
-        i = _.sortedIndex(array, item);
-        return array[i] === item ? i : -1;
-      }
-    }
-    if (nativeIndexOf && array.indexOf === nativeIndexOf) return array.indexOf(item, isSorted);
-    for (; i < l; i++) if (array[i] === item) return i;
-    return -1;
-  };
-
-  // Delegates to **ECMAScript 5**'s native `lastIndexOf` if available.
-  _.lastIndexOf = function(array, item, from) {
-    if (array == null) return -1;
-    var hasIndex = from != null;
-    if (nativeLastIndexOf && array.lastIndexOf === nativeLastIndexOf) {
-      return hasIndex ? array.lastIndexOf(item, from) : array.lastIndexOf(item);
-    }
-    var i = (hasIndex ? from : array.length);
-    while (i--) if (array[i] === item) return i;
-    return -1;
-  };
-
-  // Generate an integer Array containing an arithmetic progression. A port of
-  // the native Python `range()` function. See
-  // [the Python documentation](http://docs.python.org/library/functions.html#range).
-  _.range = function(start, stop, step) {
-    if (arguments.length <= 1) {
-      stop = start || 0;
-      start = 0;
-    }
-    step = arguments[2] || 1;
-
-    var len = Math.max(Math.ceil((stop - start) / step), 0);
-    var idx = 0;
-    var range = new Array(len);
-
-    while(idx < len) {
-      range[idx++] = start;
-      start += step;
-    }
-
-    return range;
-  };
-
-  // Function (ahem) Functions
-  // ------------------
-
-  // Create a function bound to a given object (assigning `this`, and arguments,
-  // optionally). Delegates to **ECMAScript 5**'s native `Function.bind` if
-  // available.
-  _.bind = function(func, context) {
-    if (func.bind === nativeBind && nativeBind) return nativeBind.apply(func, slice.call(arguments, 1));
-    var args = slice.call(arguments, 2);
-    return function() {
-      return func.apply(context, args.concat(slice.call(arguments)));
-    };
-  };
-
-  // Partially apply a function by creating a version that has had some of its
-  // arguments pre-filled, without changing its dynamic `this` context.
-  _.partial = function(func) {
-    var args = slice.call(arguments, 1);
-    return function() {
-      return func.apply(this, args.concat(slice.call(arguments)));
-    };
-  };
-
-  // Bind all of an object's methods to that object. Useful for ensuring that
-  // all callbacks defined on an object belong to it.
-  _.bindAll = function(obj) {
-    var funcs = slice.call(arguments, 1);
-    if (funcs.length === 0) funcs = _.functions(obj);
-    each(funcs, function(f) { obj[f] = _.bind(obj[f], obj); });
-    return obj;
-  };
-
-  // Memoize an expensive function by storing its results.
-  _.memoize = function(func, hasher) {
-    var memo = {};
-    hasher || (hasher = _.identity);
-    return function() {
-      var key = hasher.apply(this, arguments);
-      return _.has(memo, key) ? memo[key] : (memo[key] = func.apply(this, arguments));
-    };
-  };
-
-  // Delays a function for the given number of milliseconds, and then calls
-  // it with the arguments supplied.
-  _.delay = function(func, wait) {
-    var args = slice.call(arguments, 2);
-    return setTimeout(function(){ return func.apply(null, args); }, wait);
-  };
-
-  // Defers a function, scheduling it to run after the current call stack has
-  // cleared.
-  _.defer = function(func) {
-    return _.delay.apply(_, [func, 1].concat(slice.call(arguments, 1)));
-  };
-
-  // Returns a function, that, when invoked, will only be triggered at most once
-  // during a given window of time.
-  _.throttle = function(func, wait) {
-    var context, args, timeout, result;
-    var previous = 0;
-    var later = function() {
-      previous = new Date;
-      timeout = null;
-      result = func.apply(context, args);
-    };
-    return function() {
-      var now = new Date;
-      var remaining = wait - (now - previous);
-      context = this;
-      args = arguments;
-      if (remaining <= 0) {
-        clearTimeout(timeout);
-        timeout = null;
-        previous = now;
-        result = func.apply(context, args);
-      } else if (!timeout) {
-        timeout = setTimeout(later, remaining);
-      }
-      return result;
-    };
-  };
-
-  // Returns a function, that, as long as it continues to be invoked, will not
-  // be triggered. The function will be called after it stops being called for
-  // N milliseconds. If `immediate` is passed, trigger the function on the
-  // leading edge, instead of the trailing.
-  _.debounce = function(func, wait, immediate) {
-    var timeout, result;
-    return function() {
-      var context = this, args = arguments;
-      var later = function() {
-        timeout = null;
-        if (!immediate) result = func.apply(context, args);
-      };
-      var callNow = immediate && !timeout;
-      clearTimeout(timeout);
-      timeout = setTimeout(later, wait);
-      if (callNow) result = func.apply(context, args);
-      return result;
-    };
-  };
-
-  // Returns a function that will be executed at most one time, no matter how
-  // often you call it. Useful for lazy initialization.
-  _.once = function(func) {
-    var ran = false, memo;
-    return function() {
-      if (ran) return memo;
-      ran = true;
-      memo = func.apply(this, arguments);
-      func = null;
-      return memo;
-    };
-  };
-
-  // Returns the first function passed as an argument to the second,
-  // allowing you to adjust arguments, run code before and after, and
-  // conditionally execute the original function.
-  _.wrap = function(func, wrapper) {
-    return function() {
-      var args = [func];
-      push.apply(args, arguments);
-      return wrapper.apply(this, args);
-    };
-  };
-
-  // Returns a function that is the composition of a list of functions, each
-  // consuming the return value of the function that follows.
-  _.compose = function() {
-    var funcs = arguments;
-    return function() {
-      var args = arguments;
-      for (var i = funcs.length - 1; i >= 0; i--) {
-        args = [funcs[i].apply(this, args)];
-      }
-      return args[0];
-    };
-  };
-
-  // Returns a function that will only be executed after being called N times.
-  _.after = function(times, func) {
-    if (times <= 0) return func();
-    return function() {
-      if (--times < 1) {
-        return func.apply(this, arguments);
-      }
-    };
-  };
-
-  // Object Functions
-  // ----------------
-
-  // Retrieve the names of an object's properties.
-  // Delegates to **ECMAScript 5**'s native `Object.keys`
-  _.keys = nativeKeys || function(obj) {
-    if (obj !== Object(obj)) throw new TypeError('Invalid object');
-    var keys = [];
-    for (var key in obj) if (_.has(obj, key)) keys[keys.length] = key;
-    return keys;
-  };
-
-  // Retrieve the values of an object's properties.
-  _.values = function(obj) {
-    var values = [];
-    for (var key in obj) if (_.has(obj, key)) values.push(obj[key]);
-    return values;
-  };
-
-  // Convert an object into a list of `[key, value]` pairs.
-  _.pairs = function(obj) {
-    var pairs = [];
-    for (var key in obj) if (_.has(obj, key)) pairs.push([key, obj[key]]);
-    return pairs;
-  };
-
-  // Invert the keys and values of an object. The values must be serializable.
-  _.invert = function(obj) {
-    var result = {};
-    for (var key in obj) if (_.has(obj, key)) result[obj[key]] = key;
-    return result;
-  };
-
-  // Return a sorted list of the function names available on the object.
-  // Aliased as `methods`
-  _.functions = _.methods = function(obj) {
-    var names = [];
-    for (var key in obj) {
-      if (_.isFunction(obj[key])) names.push(key);
-    }
-    return names.sort();
-  };
-
-  // Extend a given object with all the properties in passed-in object(s).
-  _.extend = function(obj) {
-    each(slice.call(arguments, 1), function(source) {
-      if (source) {
-        for (var prop in source) {
-          obj[prop] = source[prop];
-        }
-      }
-    });
-    return obj;
-  };
-
-  // Return a copy of the object only containing the whitelisted properties.
-  _.pick = function(obj) {
-    var copy = {};
-    var keys = concat.apply(ArrayProto, slice.call(arguments, 1));
-    each(keys, function(key) {
-      if (key in obj) copy[key] = obj[key];
-    });
-    return copy;
-  };
-
-   // Return a copy of the object without the blacklisted properties.
-  _.omit = function(obj) {
-    var copy = {};
-    var keys = concat.apply(ArrayProto, slice.call(arguments, 1));
-    for (var key in obj) {
-      if (!_.contains(keys, key)) copy[key] = obj[key];
-    }
-    return copy;
-  };
-
-  // Fill in a given object with default properties.
-  _.defaults = function(obj) {
-    each(slice.call(arguments, 1), function(source) {
-      if (source) {
-        for (var prop in source) {
-          if (obj[prop] == null) obj[prop] = source[prop];
-        }
-      }
-    });
-    return obj;
-  };
-
-  // Create a (shallow-cloned) duplicate of an object.
-  _.clone = function(obj) {
-    if (!_.isObject(obj)) return obj;
-    return _.isArray(obj) ? obj.slice() : _.extend({}, obj);
-  };
-
-  // Invokes interceptor with the obj, and then returns obj.
-  // The primary purpose of this method is to "tap into" a method chain, in
-  // order to perform operations on intermediate results within the chain.
-  _.tap = function(obj, interceptor) {
-    interceptor(obj);
-    return obj;
-  };
-
-  // Internal recursive comparison function for `isEqual`.
-  var eq = function(a, b, aStack, bStack) {
-    // Identical objects are equal. `0 === -0`, but they aren't identical.
-    // See the Harmony `egal` proposal: http://wiki.ecmascript.org/doku.php?id=harmony:egal.
-    if (a === b) return a !== 0 || 1 / a == 1 / b;
-    // A strict comparison is necessary because `null == undefined`.
-    if (a == null || b == null) return a === b;
-    // Unwrap any wrapped objects.
-    if (a instanceof _) a = a._wrapped;
-    if (b instanceof _) b = b._wrapped;
-    // Compare `[[Class]]` names.
-    var className = toString.call(a);
-    if (className != toString.call(b)) return false;
-    switch (className) {
-      // Strings, numbers, dates, and booleans are compared by value.
-      case '[object String]':
-        // Primitives and their corresponding object wrappers are equivalent; thus, `"5"` is
-        // equivalent to `new String("5")`.
-        return a == String(b);
-      case '[object Number]':
-        // `NaN`s are equivalent, but non-reflexive. An `egal` comparison is performed for
-        // other numeric values.
-        return a != +a ? b != +b : (a == 0 ? 1 / a == 1 / b : a == +b);
-      case '[object Date]':
-      case '[object Boolean]':
-        // Coerce dates and booleans to numeric primitive values. Dates are compared by their
-        // millisecond representations. Note that invalid dates with millisecond representations
-        // of `NaN` are not equivalent.
-        return +a == +b;
-      // RegExps are compared by their source patterns and flags.
-      case '[object RegExp]':
-        return a.source == b.source &&
-               a.global == b.global &&
-               a.multiline == b.multiline &&
-               a.ignoreCase == b.ignoreCase;
-    }
-    if (typeof a != 'object' || typeof b != 'object') return false;
-    // Assume equality for cyclic structures. The algorithm for detecting cyclic
-    // structures is adapted from ES 5.1 section 15.12.3, abstract operation `JO`.
-    var length = aStack.length;
-    while (length--) {
-      // Linear search. Performance is inversely proportional to the number of
-      // unique nested structures.
-      if (aStack[length] == a) return bStack[length] == b;
-    }
-    // Add the first object to the stack of traversed objects.
-    aStack.push(a);
-    bStack.push(b);
-    var size = 0, result = true;
-    // Recursively compare objects and arrays.
-    if (className == '[object Array]') {
-      // Compare array lengths to determine if a deep comparison is necessary.
-      size = a.length;
-      result = size == b.length;
-      if (result) {
-        // Deep compare the contents, ignoring non-numeric properties.
-        while (size--) {
-          if (!(result = eq(a[size], b[size], aStack, bStack))) break;
-        }
-      }
-    } else {
-      // Objects with different constructors are not equivalent, but `Object`s
-      // from different frames are.
-      var aCtor = a.constructor, bCtor = b.constructor;
-      if (aCtor !== bCtor && !(_.isFunction(aCtor) && (aCtor instanceof aCtor) &&
-                               _.isFunction(bCtor) && (bCtor instanceof bCtor))) {
-        return false;
-      }
-      // Deep compare objects.
-      for (var key in a) {
-        if (_.has(a, key)) {
-          // Count the expected number of properties.
-          size++;
-          // Deep compare each member.
-          if (!(result = _.has(b, key) && eq(a[key], b[key], aStack, bStack))) break;
-        }
-      }
-      // Ensure that both objects contain the same number of properties.
-      if (result) {
-        for (key in b) {
-          if (_.has(b, key) && !(size--)) break;
-        }
-        result = !size;
-      }
-    }
-    // Remove the first object from the stack of traversed objects.
-    aStack.pop();
-    bStack.pop();
-    return result;
-  };
-
-  // Perform a deep comparison to check if two objects are equal.
-  _.isEqual = function(a, b) {
-    return eq(a, b, [], []);
-  };
-
-  // Is a given array, string, or object empty?
-  // An "empty" object has no enumerable own-properties.
-  _.isEmpty = function(obj) {
-    if (obj == null) return true;
-    if (_.isArray(obj) || _.isString(obj)) return obj.length === 0;
-    for (var key in obj) if (_.has(obj, key)) return false;
-    return true;
-  };
-
-  // Is a given value a DOM element?
-  _.isElement = function(obj) {
-    return !!(obj && obj.nodeType === 1);
-  };
-
-  // Is a given value an array?
-  // Delegates to ECMA5's native Array.isArray
-  _.isArray = nativeIsArray || function(obj) {
-    return toString.call(obj) == '[object Array]';
-  };
-
-  // Is a given variable an object?
-  _.isObject = function(obj) {
-    return obj === Object(obj);
-  };
-
-  // Add some isType methods: isArguments, isFunction, isString, isNumber, isDate, isRegExp.
-  each(['Arguments', 'Function', 'String', 'Number', 'Date', 'RegExp'], function(name) {
-    _['is' + name] = function(obj) {
-      return toString.call(obj) == '[object ' + name + ']';
-    };
-  });
-
-  // Define a fallback version of the method in browsers (ahem, IE), where
-  // there isn't any inspectable "Arguments" type.
-  if (!_.isArguments(arguments)) {
-    _.isArguments = function(obj) {
-      return !!(obj && _.has(obj, 'callee'));
-    };
-  }
-
-  // Optimize `isFunction` if appropriate.
-  if (typeof (/./) !== 'function') {
-    _.isFunction = function(obj) {
-      return typeof obj === 'function';
-    };
-  }
-
-  // Is a given object a finite number?
-  _.isFinite = function(obj) {
-    return isFinite(obj) && !isNaN(parseFloat(obj));
-  };
-
-  // Is the given value `NaN`? (NaN is the only number which does not equal itself).
-  _.isNaN = function(obj) {
-    return _.isNumber(obj) && obj != +obj;
-  };
-
-  // Is a given value a boolean?
-  _.isBoolean = function(obj) {
-    return obj === true || obj === false || toString.call(obj) == '[object Boolean]';
-  };
-
-  // Is a given value equal to null?
-  _.isNull = function(obj) {
-    return obj === null;
-  };
-
-  // Is a given variable undefined?
-  _.isUndefined = function(obj) {
-    return obj === void 0;
-  };
-
-  // Shortcut function for checking if an object has a given property directly
-  // on itself (in other words, not on a prototype).
-  _.has = function(obj, key) {
-    return hasOwnProperty.call(obj, key);
-  };
-
-  // Utility Functions
-  // -----------------
-
-  // Run Underscore.js in *noConflict* mode, returning the `_` variable to its
-  // previous owner. Returns a reference to the Underscore object.
-  _.noConflict = function() {
-    root._ = previousUnderscore;
-    return this;
-  };
-
-  // Keep the identity function around for default iterators.
-  _.identity = function(value) {
-    return value;
-  };
-
-  // Run a function **n** times.
-  _.times = function(n, iterator, context) {
-    var accum = Array(n);
-    for (var i = 0; i < n; i++) accum[i] = iterator.call(context, i);
-    return accum;
-  };
-
-  // Return a random integer between min and max (inclusive).
-  _.random = function(min, max) {
-    if (max == null) {
-      max = min;
-      min = 0;
-    }
-    return min + Math.floor(Math.random() * (max - min + 1));
-  };
-
-  // List of HTML entities for escaping.
-  var entityMap = {
-    escape: {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#x27;',
-      '/': '&#x2F;'
-    }
-  };
-  entityMap.unescape = _.invert(entityMap.escape);
-
-  // Regexes containing the keys and values listed immediately above.
-  var entityRegexes = {
-    escape:   new RegExp('[' + _.keys(entityMap.escape).join('') + ']', 'g'),
-    unescape: new RegExp('(' + _.keys(entityMap.unescape).join('|') + ')', 'g')
-  };
-
-  // Functions for escaping and unescaping strings to/from HTML interpolation.
-  _.each(['escape', 'unescape'], function(method) {
-    _[method] = function(string) {
-      if (string == null) return '';
-      return ('' + string).replace(entityRegexes[method], function(match) {
-        return entityMap[method][match];
-      });
-    };
-  });
-
-  // If the value of the named property is a function then invoke it;
-  // otherwise, return it.
-  _.result = function(object, property) {
-    if (object == null) return null;
-    var value = object[property];
-    return _.isFunction(value) ? value.call(object) : value;
-  };
-
-  // Add your own custom functions to the Underscore object.
-  _.mixin = function(obj) {
-    each(_.functions(obj), function(name){
-      var func = _[name] = obj[name];
-      _.prototype[name] = function() {
-        var args = [this._wrapped];
-        push.apply(args, arguments);
-        return result.call(this, func.apply(_, args));
-      };
-    });
-  };
-
-  // Generate a unique integer id (unique within the entire client session).
-  // Useful for temporary DOM ids.
-  var idCounter = 0;
-  _.uniqueId = function(prefix) {
-    var id = ++idCounter + '';
-    return prefix ? prefix + id : id;
-  };
-
-  // By default, Underscore uses ERB-style template delimiters, change the
-  // following template settings to use alternative delimiters.
-  _.templateSettings = {
-    evaluate    : /<%([\s\S]+?)%>/g,
-    interpolate : /<%=([\s\S]+?)%>/g,
-    escape      : /<%-([\s\S]+?)%>/g
-  };
-
-  // When customizing `templateSettings`, if you don't want to define an
-  // interpolation, evaluation or escaping regex, we need one that is
-  // guaranteed not to match.
-  var noMatch = /(.)^/;
-
-  // Certain characters need to be escaped so that they can be put into a
-  // string literal.
-  var escapes = {
-    "'":      "'",
-    '\\':     '\\',
-    '\r':     'r',
-    '\n':     'n',
-    '\t':     't',
-    '\u2028': 'u2028',
-    '\u2029': 'u2029'
-  };
-
-  var escaper = /\\|'|\r|\n|\t|\u2028|\u2029/g;
-
-  // JavaScript micro-templating, similar to John Resig's implementation.
-  // Underscore templating handles arbitrary delimiters, preserves whitespace,
-  // and correctly escapes quotes within interpolated code.
-  _.template = function(text, data, settings) {
-    var render;
-    settings = _.defaults({}, settings, _.templateSettings);
-
-    // Combine delimiters into one regular expression via alternation.
-    var matcher = new RegExp([
-      (settings.escape || noMatch).source,
-      (settings.interpolate || noMatch).source,
-      (settings.evaluate || noMatch).source
-    ].join('|') + '|$', 'g');
-
-    // Compile the template source, escaping string literals appropriately.
-    var index = 0;
-    var source = "__p+='";
-    text.replace(matcher, function(match, escape, interpolate, evaluate, offset) {
-      source += text.slice(index, offset)
-        .replace(escaper, function(match) { return '\\' + escapes[match]; });
-
-      if (escape) {
-        source += "'+\n((__t=(" + escape + "))==null?'':_.escape(__t))+\n'";
-      }
-      if (interpolate) {
-        source += "'+\n((__t=(" + interpolate + "))==null?'':__t)+\n'";
-      }
-      if (evaluate) {
-        source += "';\n" + evaluate + "\n__p+='";
-      }
-      index = offset + match.length;
-      return match;
-    });
-    source += "';\n";
-
-    // If a variable is not specified, place data values in local scope.
-    if (!settings.variable) source = 'with(obj||{}){\n' + source + '}\n';
-
-    source = "var __t,__p='',__j=Array.prototype.join," +
-      "print=function(){__p+=__j.call(arguments,'');};\n" +
-      source + "return __p;\n";
-
-    try {
-      render = new Function(settings.variable || 'obj', '_', source);
-    } catch (e) {
-      e.source = source;
-      throw e;
-    }
-
-    if (data) return render(data, _);
-    var template = function(data) {
-      return render.call(this, data, _);
-    };
-
-    // Provide the compiled function source as a convenience for precompilation.
-    template.source = 'function(' + (settings.variable || 'obj') + '){\n' + source + '}';
-
-    return template;
-  };
-
-  // Add a "chain" function, which will delegate to the wrapper.
-  _.chain = function(obj) {
-    return _(obj).chain();
-  };
-
-  // OOP
-  // ---------------
-  // If Underscore is called as a function, it returns a wrapped object that
-  // can be used OO-style. This wrapper holds altered versions of all the
-  // underscore functions. Wrapped objects may be chained.
-
-  // Helper function to continue chaining intermediate results.
-  var result = function(obj) {
-    return this._chain ? _(obj).chain() : obj;
-  };
-
-  // Add all of the Underscore functions to the wrapper object.
-  _.mixin(_);
-
-  // Add all mutator Array functions to the wrapper.
-  each(['pop', 'push', 'reverse', 'shift', 'sort', 'splice', 'unshift'], function(name) {
-    var method = ArrayProto[name];
-    _.prototype[name] = function() {
-      var obj = this._wrapped;
-      method.apply(obj, arguments);
-      if ((name == 'shift' || name == 'splice') && obj.length === 0) delete obj[0];
-      return result.call(this, obj);
-    };
-  });
-
-  // Add all accessor Array functions to the wrapper.
-  each(['concat', 'join', 'slice'], function(name) {
-    var method = ArrayProto[name];
-    _.prototype[name] = function() {
-      return result.call(this, method.apply(this._wrapped, arguments));
-    };
-  });
-
-  _.extend(_.prototype, {
-
-    // Start chaining a wrapped Underscore object.
-    chain: function() {
-      this._chain = true;
-      return this;
-    },
-
-    // Extracts the result from a wrapped and chained object.
-    value: function() {
-      return this._wrapped;
-    }
-
-  });
-
-}).call(this);
 
 /*global _: false, $: false, localStorage: false, process: true,
   XMLHttpRequest: false, XDomainRequest: false, exports: false,
@@ -1258,10 +32,19 @@
 
   // Import Parse's local copy of underscore.
   if (typeof(exports) !== "undefined" && exports._) {
+    // We're running in Node.js.  Pull in the dependencies.
     Parse._ = exports._.noConflict();
+    Parse.localStorage = require('localStorage');
+    Parse.XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
     exports.Parse = Parse;
   } else {
     Parse._ = _.noConflict();
+    if (typeof(localStorage) !== "undefined") {
+      Parse.localStorage = localStorage;
+    }
+    if (typeof(XMLHttpRequest) !== "undefined") {
+      Parse.XMLHttpRequest = XMLHttpRequest;
+    }
   }
 
   // If jQuery or Zepto has been included, grab a reference to it.
@@ -1275,7 +58,7 @@
   // Shared empty constructor function to aid in prototype-chain creation.
   var EmptyConstructor = function() {};
 
-  
+
   // Helper function to correctly set up the prototype chain, for subclasses.
   // Similar to `goog.inherits`, but uses a hash of prototype properties and
   // class properties to be extended.
@@ -1412,7 +195,7 @@
 
     // Try to get it from localStorage.
     var path = Parse._getParsePath("installationId");
-    Parse._installationId = Ti.App.Properties.getString(path);
+    Parse._installationId = Parse.localStorage.getItem(path);
 
     if (!Parse._installationId || Parse._installationId === "") {
       // It wasn't in localStorage, so create a new one.
@@ -1425,7 +208,7 @@
         hexOctet() + "-" +
         hexOctet() + "-" +
         hexOctet() + hexOctet() + hexOctet());
-      Ti.App.Properties.setString(path, Parse._installationId);
+      Parse.localStorage.setItem(path, Parse._installationId);
     }
 
     return Parse._installationId;
@@ -1467,7 +250,14 @@
       }
     };
     xdr.onerror = xdr.ontimeout = function() {
-      promise.reject(xdr);
+      // Let's fake a real error message.
+      var fakeResponse = {
+        responseText: JSON.stringify({
+          code: Parse.Error.X_DOMAIN_REQUEST,
+          error: "IE's XDomainRequest does not supply error info."
+        })
+      };
+      promise.reject(fakeResponse);
     };
     xdr.onprogress = function() {};
     xdr.open(method, url);
@@ -1475,21 +265,33 @@
     return promise;
   };
 
-  
+  Parse._useXDomainRequest = function() {
+    if (typeof(XDomainRequest) !== "undefined") {
+      // We're in IE 8+.
+      if ('withCredentials' in new XMLHttpRequest()) {
+        // We're in IE 10+.
+        return false;
+      }
+      return true;
+    }
+    return false;
+  };
+
+
   Parse._ajax = function(method, url, data, success, error) {
     var options = {
       success: success,
       error: error
     };
 
-    if (typeof(XDomainRequest) !== "undefined") {
+    if (Parse._useXDomainRequest()) {
       return Parse._ajaxIE8(method, url, data)._thenRunCallbacks(options);
     }
 
     var promise = new Parse.Promise();
     var handled = false;
 
-    var xhr = Titanium.Network.createHTTPClient();
+    var xhr = new Parse.XMLHttpRequest();
     xhr.onreadystatechange = function() {
       if (xhr.readyState === 4) {
         if (handled) {
@@ -1546,6 +348,7 @@
     var objectId = options.objectId;
     var method = options.method;
     var useMasterKey = options.useMasterKey;
+    var sessionToken = options.sessionToken;
     var dataObject = options.data;
 
     if (!Parse.applicationId) {
@@ -1556,7 +359,16 @@
       throw "You must specify a key using Parse.initialize.";
     }
 
-    
+
+    if (!sessionToken) {
+      // Use the current user session token if none was provided.
+      var currentUser = Parse.User.current();
+      if (currentUser && currentUser._sessionToken) {
+        sessionToken = currentUser._sessionToken;
+      }
+    }
+
+
     if (route !== "batch" &&
         route !== "classes" &&
         route !== "events" &&
@@ -1565,6 +377,7 @@
         route !== "login" &&
         route !== "push" &&
         route !== "requestPasswordReset" &&
+        route !== "rest_verify_analytics" &&
         route !== "users" &&
         route !== "jobs") {
       throw "Bad route: '" + route + "'.";
@@ -1601,10 +414,8 @@
 
     dataObject._ClientVersion = Parse.VERSION;
     dataObject._InstallationId = Parse._getInstallationId();
-    // Pass the session token on every request.
-    var currentUser = Parse.User.current();
-    if (currentUser && currentUser._sessionToken) {
-      dataObject._SessionToken = currentUser._sessionToken;
+    if (sessionToken) {
+      dataObject._SessionToken = sessionToken;
     }
     var data = JSON.stringify(dataObject);
 
@@ -1615,14 +426,19 @@
       if (response && response.responseText) {
         try {
           var errorJSON = JSON.parse(response.responseText);
-          if (errorJSON) {
-            error = new Parse.Error(errorJSON.code, errorJSON.error);
-          }
+          error = new Parse.Error(errorJSON.code, errorJSON.error);
         } catch (e) {
           // If we fail to parse the error text, that's okay.
+          error = new Parse.Error(
+              Parse.Error.INVALID_JSON,
+              "Received an error with invalid JSON from Parse: " +
+                  response.responseText);
         }
+      } else {
+        error = new Parse.Error(
+            Parse.Error.CONNECTION_FAILED,
+            "XMLHttpRequest failed: " + JSON.stringify(response));
       }
-      error = error || new Parse.Error(-1, response.responseText);
       // By explicitly returning a rejected Promise, this will work with
       // either jQuery or Promises/A semantics.
       return Parse.Promise.error(error);
@@ -1889,7 +705,10 @@
      * to the server completes.
      */
     track: function(name, dimensions) {
-      if (!name || name.trim().length === 0) {
+      name = name || '';
+      name = name.replace(/^\s*/, '');
+      name = name.replace(/\s*$/, '');
+      if (name.length === 0) {
         throw 'A name for the custom event must be provided';
       }
 
@@ -1936,7 +755,7 @@
 
     /**
      * Error code indicating that something has gone wrong with the server.
-     * If you get this error code, it is Parse's fault. Contact us at 
+     * If you get this error code, it is Parse's fault. Contact us at
      * https://parse.com/help
      * @constant
      */
@@ -2250,7 +1069,22 @@
      * detail about each error that occurred.
      * @constant
      */
-    AGGREGATE_ERROR: 600
+    AGGREGATE_ERROR: 600,
+
+    /**
+     * Error code indicating the client was unable to read an input file.
+     * @constant
+     */
+    FILE_READ_ERROR: 601,
+
+    /**
+     * Error code indicating a real error code is unavailable because
+     * we had to use an XDomainRequest object to allow CORS requests in
+     * Internet Explorer, which strips the body from HTTP responses that have
+     * a non-2XX status code.
+     * @constant
+     */
+    X_DOMAIN_REQUEST: 602
   });
 
 }(this));
@@ -2398,7 +1232,7 @@
 
       return this;
     }
-  };  
+  };
 
   /**
    * @function
@@ -2766,12 +1600,12 @@
   Parse.ACL.prototype.getPublicWriteAccess = function() {
     return this.getWriteAccess(PUBLIC_KEY);
   };
-  
+
   /**
    * Get whether users belonging to the given role are allowed
    * to read this object. Even if this returns false, the role may
    * still be able to write it if a parent role has read access.
-   * 
+   *
    * @param role The name of the role, or a Parse.Role object.
    * @return {Boolean} true if the role has read access. false otherwise.
    * @throws {String} If role is neither a Parse.Role nor a String.
@@ -2786,12 +1620,12 @@
     }
     throw "role must be a Parse.Role or a String";
   };
-  
+
   /**
    * Get whether users belonging to the given role are allowed
    * to write this object. Even if this returns false, the role may
    * still be able to write it if a parent role has write access.
-   * 
+   *
    * @param role The name of the role, or a Parse.Role object.
    * @return {Boolean} true if the role has write access. false otherwise.
    * @throws {String} If role is neither a Parse.Role nor a String.
@@ -2806,11 +1640,11 @@
     }
     throw "role must be a Parse.Role or a String";
   };
-  
+
   /**
    * Set whether users belonging to the given role are allowed
    * to read this object.
-   * 
+   *
    * @param role The name of the role, or a Parse.Role object.
    * @param {Boolean} allowed Whether the given role can read this object.
    * @throws {String} If role is neither a Parse.Role nor a String.
@@ -2826,11 +1660,11 @@
     }
     throw "role must be a Parse.Role or a String";
   };
-  
+
   /**
    * Set whether users belonging to the given role are allowed
    * to write this object.
-   * 
+   *
    * @param role The name of the role, or a Parse.Role object.
    * @param {Boolean} allowed Whether the given role can write this object.
    * @throws {String} If role is neither a Parse.Role nor a String.
@@ -3727,6 +2561,28 @@
     },
 
     /**
+     * Add handlers to be called when the promise
+     * is either resolved or rejected
+     */
+    always: function(callback) {
+      return this.then(callback, callback);
+    },
+
+    /**
+     * Add handlers to be called when the Promise object is resolved
+     */
+    done: function(callback) {
+      return this.then(callback);
+    },
+
+    /**
+     * Add handlers to be called when the Promise object is rejected
+     */
+    fail: function(callback) {
+      return this.then(null, callback);
+    },
+
+    /**
      * Run the given callbacks after this promise is fulfilled.
      * @param optionsOrCallback {} A Backbone-style options callback, or a
      * callback function. If this is an options object and contains a "model"
@@ -3844,7 +2700,7 @@
     return chunks.join("");
   };
 
-  
+
   // A list of file extensions to mime types as found here:
   // http://stackoverflow.com/questions/58510/using-net-how-can-you-find-the-
   //     mime-type-of-a-file-based-on-the-file-signature
@@ -3952,7 +2808,7 @@
     pgn: "application/x-chess-pgn",
     pic: "image/pict",
     pict: "image/pict",
-    png: "image/png", 
+    png: "image/png",
     pnm: "image/x-portable-anymap",
     pnt: "image/x-macpaint",
     pntg: "image/x-macpaint",
@@ -4057,21 +2913,25 @@
 
     if (typeof(FileReader) === "undefined") {
       return Parse.Promise.error(new Parse.Error(
-          -1, "Attempted to use a FileReader on an unsupported browser."));
+          Parse.Error.FILE_READ_ERROR,
+          "Attempted to use a FileReader on an unsupported browser."));
     }
 
     var reader = new FileReader();
     reader.onloadend = function() {
       if (reader.readyState !== 2) {
-        promise.reject(new Parse.Error(-1, "Error reading file."));
+        promise.reject(new Parse.Error(
+            Parse.Error.FILE_READ_ERROR,
+            "Error reading file."));
         return;
       }
 
       var dataURL = reader.result;
       var matches = /^data:([^;]*);base64,(.*)$/.exec(dataURL);
       if (!matches) {
-        promise.reject(
-            new Parse.Error(-1, "Unable to interpret data URL: " + dataURL));
+        promise.reject(new Parse.Error(
+            Parse.ERROR.FILE_READ_ERROR,
+            "Unable to interpret data URL: " + dataURL));
         return;
       }
 
@@ -4085,8 +2945,10 @@
    * A Parse.File is a local representation of a file that is saved to the Parse
    * cloud.
    * @class
-   * @param name {String} The file's name. This will change to a unique value
-   *     once the file has finished saving.
+   * @param name {String} The file's name. This will be prefixed by a unique
+   *     value once the file has finished saving. The file name must begin with
+   *     an alphanumeric character, and consist of alphanumeric characters,
+   *     periods, spaces, underscores, or dashes.
    * @param data {Array} The data for the file, as either:
    *     1. an Array of byte value Numbers, or
    *     2. an Object like { base64: "..." } with a base64-encoded String.
@@ -4121,7 +2983,20 @@
     if (_.isArray(data)) {
       this._source = Parse.Promise.as(encodeBase64(data), guessedType);
     } else if (data && data.base64) {
-      this._source = Parse.Promise.as(data.base64, guessedType);
+      // if it contains data uri, extract based64 and the type out of it.
+      /*jslint maxlen: 1000*/
+      var dataUriRegexp = /^data:([a-zA-Z]*\/[a-zA-Z+.-]*);(charset=[a-zA-Z0-9\-\/\s]*,)?base64,(\S+)/;
+      /*jslint maxlen: 80*/
+
+      var matches = dataUriRegexp.exec(data.base64);
+      if (matches && matches.length > 0) {
+        // if data URI with charset, there will have 4 matches.
+        this._source = Parse.Promise.as(
+          (matches.length === 4 ? matches[3] : matches[2]), matches[1]
+        );
+      } else {
+        this._source = Parse.Promise.as(data.base64, guessedType);
+      }
     } else if (typeof(File) !== "undefined" && data instanceof File) {
       this._source = readAsync(data, type);
     } else if (_.isString(data)) {
@@ -4319,13 +3194,13 @@
    *       array of other Parse.Error objects. Each error object in this array
    *       has an "object" property that references the object that could not be
    *       deleted (for instance, because that object could not be found).</li>
-   *   <li>A non-aggregate Parse.Error. This indicates a serious error that 
-   *       caused the delete operation to be aborted partway through (for 
+   *   <li>A non-aggregate Parse.Error. This indicates a serious error that
+   *       caused the delete operation to be aborted partway through (for
    *       instance, a connection failure in the middle of the delete).</li>
    * </ul>
    *
    * <p>There are two ways you can call this function.
-   * 
+   *
    * The Backbone way:<pre>
    *   Parse.Object.destroyAll([object1, object2, ...], {
    *     success: function() {
@@ -4338,7 +3213,7 @@
    *       // object was not deleted.
    *       if (error.code == Parse.Error.AGGREGATE_ERROR) {
    *         for (var i = 0; i < error.errors.length; i++) {
-   *           console.log("Couldn't delete " + error.errors[i].object.id + 
+   *           console.log("Couldn't delete " + error.errors[i].object.id +
    *             "due to " + error.errors[i].message);
    *         }
    *       } else {
@@ -4358,7 +3233,7 @@
    *       // object was not deleted.
    *       if (error.code == Parse.Error.AGGREGATE_ERROR) {
    *         for (var i = 0; i < error.errors.length; i++) {
-   *           console.log("Couldn't delete " + error.errors[i].object.id + 
+   *           console.log("Couldn't delete " + error.errors[i].object.id +
    *             "due to " + error.errors[i].message);
    *         }
    *       } else {
@@ -4554,6 +3429,14 @@
     },
 
     /**
+     * Returns an array of keys that have been modified since last save/refresh
+     * @return {Array of string}
+     */
+    dirtyKeys: function() {
+      return _.keys(_.last(this._opSetQueue));
+    },
+
+    /**
      * Gets a Pointer referencing this Object.
      */
     _toPointer: function() {
@@ -4724,15 +3607,18 @@
      * the given object.
      */
     _finishFetch: function(serverData, hasData) {
+
       // Clear out any changes the user might have made previously.
       this._opSetQueue = [{}];
 
       // Bring in all the new server data.
       this._mergeMagicFields(serverData);
       var self = this;
+      var tempServerData = {};
       Parse._objectEach(serverData, function(value, key) {
-        self._serverData[key] = Parse._decode(key, value);
+        tempServerData[key] = Parse._decode(key, value);
       });
+      self._serverData = tempServerData;
 
       // Refresh the attributes.
       this._rebuildAllEstimatedData();
@@ -4853,7 +3739,7 @@
      *   });
      *
      *   game.set("finished", true);</pre></p>
-     * 
+     *
      * @param {String} key The key to set.
      * @param {} value The value to give it.
      * @param {Object} options A set of Backbone-like options for the set.
@@ -5133,7 +4019,7 @@
      *   }, function(error) {
      *     // The save failed.  Error is an instance of Parse.Error.
      *   });</pre>
-     * 
+     *
      * @param {Object} options A Backbone-style callback object.
      * Valid options are:<ul>
      *   <li>wait: Set to true to wait for the server to confirm a successful
@@ -5202,7 +4088,7 @@
       // If there is any unsaved child, save it first.
       model._refreshCache();
 
-      
+
 
       var unsavedChildren = [];
       var unsavedFiles = [];
@@ -5476,7 +4362,7 @@
      * You should not call this function directly unless you subclass
      * <code>Parse.Object</code>, in which case you can override this method
      * to provide additional validation on <code>set</code> and
-     * <code>save</code>.  Your implementation should return 
+     * <code>save</code>.  Your implementation should return
      *
      * @param {Object} attrs The current data to validate.
      * @param {Object} options A Backbone-like options object.
@@ -5487,6 +4373,15 @@
       if (_.has(attrs, "ACL") && !(attrs.ACL instanceof Parse.ACL)) {
         return new Parse.Error(Parse.Error.OTHER_CAUSE,
                                "ACL must be a Parse.ACL.");
+      }
+      var correct = true;
+      Parse._objectEach(attrs, function(unused_value, key) {
+        if (!(/^[A-Za-z][0-9A-Za-z_]*$/).test(key)) {
+          correct = false;
+        }
+      });
+      if (!correct) {
+        return new Parse.Error(Parse.Error.INVALID_KEY_NAME);
       }
       return false;
     },
@@ -5576,14 +4471,22 @@
    *
    * <p>You should call either:<pre>
    *     var MyClass = Parse.Object.extend("MyClass", {
-   *         <i>Instance properties</i>
+   *         <i>Instance methods</i>,
+   *         initialize: function(attrs, options) {
+   *             this.someInstanceProperty = [],
+   *             <i>Other instance properties</i>
+   *         }
    *     }, {
    *         <i>Class properties</i>
    *     });</pre>
    * or, for Backbone compatibility:<pre>
    *     var MyClass = Parse.Object.extend({
    *         className: "MyClass",
-   *         <i>Other instance properties</i>
+   *         <i>Instance methods</i>,
+   *         initialize: function(attrs, options) {
+   *             this.someInstanceProperty = [],
+   *             <i>Other instance properties</i>
+   *         }
    *     }, {
    *         <i>Class properties</i>
    *     });</pre></p>
@@ -5607,9 +4510,11 @@
     }
 
     // If someone tries to subclass "User", coerce it to the right type.
-    if (className === "User") {
+    if (className === "User" && Parse.User._performUserRewrite) {
       className = "_User";
     }
+    protoProps = protoProps || {};
+    protoProps.className = className;
 
     var NewClassObject = null;
     if (_.has(Parse.Object._classMap, className)) {
@@ -5619,8 +4524,6 @@
       // For now, let's just pick one.
       NewClassObject = OldClassObject._extend(protoProps, classProps);
     } else {
-      protoProps = protoProps || {};
-      protoProps.className = className;
       NewClassObject = this._extend(protoProps, classProps);
     }
     // Extending a subclass should reuse the classname automatically.
@@ -5655,7 +4558,7 @@
   };
 
   Parse.Object._canBeSerializedAsValue = function(object) {
-    
+
     if (object instanceof Parse.Object) {
       return !!object.id;
     }
@@ -5750,15 +4653,15 @@
               requests: _.map(batch, function(object) {
                 var json = object._getSaveJSON();
                 var method = "POST";
-  
+
                 var path = "/1/classes/" + object.className;
                 if (object.id) {
                   path = path + "/" + object.id;
                   method = "PUT";
                 }
-  
+
                 object._startSave();
-  
+
                 return {
                   method: method,
                   path: path,
@@ -5818,10 +4721,10 @@
    */
   Parse.Role = Parse.Object.extend("_Role", /** @lends Parse.Role.prototype */ {
     // Instance Methods
-    
+
     /**
      * Constructs a new ParseRole with the given name and ACL.
-     * 
+     *
      * @param {String} name The name of the Role to create.
      * @param {Parse.ACL} acl The ACL for this role. Roles must have an ACL.
      */
@@ -5834,28 +4737,28 @@
         Parse.Object.prototype.constructor.call(this, name, acl);
       }
     },
-    
+
     /**
      * Gets the name of the role.  You can alternatively call role.get("name")
-     * 
+     *
      * @return {String} the name of the role.
      */
     getName: function() {
       return this.get("name");
     },
-    
+
     /**
      * Sets the name for a role. This value must be set before the role has
      * been saved to the server, and cannot be set once the role has been
      * saved.
-     * 
+     *
      * <p>
      *   A role's name can only contain alphanumeric characters, _, -, and
      *   spaces.
      * </p>
      *
      * <p>This is equivalent to calling role.set("name", name)</p>
-     * 
+     *
      * @param {String} name The name of the role.
      * @param {Object} options Standard options object with success and error
      *     callbacks.
@@ -5863,37 +4766,37 @@
     setName: function(name, options) {
       return this.set("name", name, options);
     },
-    
+
     /**
      * Gets the Parse.Relation for the Parse.Users that are direct
      * children of this role. These users are granted any privileges that this
      * role has been granted (e.g. read or write access through ACLs). You can
      * add or remove users from the role through this relation.
-     * 
+     *
      * <p>This is equivalent to calling role.relation("users")</p>
-     * 
+     *
      * @return {Parse.Relation} the relation for the users belonging to this
      *     role.
      */
     getUsers: function() {
       return this.relation("users");
     },
-    
+
     /**
      * Gets the Parse.Relation for the Parse.Roles that are direct
      * children of this role. These roles' users are granted any privileges that
      * this role has been granted (e.g. read or write access through ACLs). You
      * can add or remove child roles from this role through this relation.
-     * 
+     *
      * <p>This is equivalent to calling role.relation("roles")</p>
-     * 
+     *
      * @return {Parse.Relation} the relation for the roles belonging to this
      *     role.
      */
     getRoles: function() {
       return this.relation("roles");
     },
-    
+
     /**
      * @ignore
      */
@@ -5979,7 +4882,7 @@
 
     // The default model for a collection is just a Parse.Object.
     // This should be overridden in most cases.
-    
+
     model: Parse.Object,
 
     /**
@@ -6049,7 +4952,7 @@
       // Insert models into the collection, re-sorting if needed, and triggering
       // `add` events unless silenced.
       this.length += length;
-      index = Parse._isNullOrUndefined(options.at) ? 
+      index = Parse._isNullOrUndefined(options.at) ?
           this.models.length : options.at;
       this.models.splice.apply(this.models, [index, 0].concat(models));
       if (this.comparator) {
@@ -6420,7 +5323,7 @@
   var eventSplitter = /^(\S+)\s*(.*)$/;
 
   // List of view options to be merged as properties.
-  
+
   var viewOptions = ['model', 'collection', 'el', 'id', 'attributes',
                      'className', 'tagName'];
 
@@ -6597,7 +5500,6 @@
 
 }(this));
 
-/*global localStorage: false */
 (function(root) {
   root.Parse = root.Parse || {};
   var Parse = root.Parse;
@@ -7030,6 +5932,9 @@
     // The mapping of auth provider names to actual providers
     _authProviders: {},
 
+    // Whether to rewrite className User to _User
+    _performUserRewrite: true,
+
 
     // Class Methods
 
@@ -7073,9 +5978,39 @@
      */
     logIn: function(username, password, options) {
       var user = Parse.Object._create("_User");
-      user.set("username", username);
-      user.set("password", password);
-      user.logIn(options);
+      user._finishFetch({ username: username, password: password });
+      return user.logIn(options);
+    },
+
+    /**
+     * Logs in a user with a session token. On success, this saves the session
+     * to disk, so you can retrieve the currently logged in user using
+     * <code>current</code>.
+     *
+     * <p>Calls options.success or options.error on completion.</p>
+     *
+     * @param {String} sessionToken The sessionToken to log in with.
+     * @param {Object} options A Backbone-style options object.
+     * @return {Parse.Promise} A promise that is fulfilled with the user when
+     *     the login completes.
+     */
+    become: function(sessionToken, options) {
+      options = options || {};
+
+      var user = Parse.Object._create("_User");
+      return Parse._request({
+        route: "users",
+        className: "me",
+        method: "GET",
+        useMasterKey: options.useMasterKey,
+        sessionToken: sessionToken
+      }).then(function(resp, status, xhr) {
+        var serverAttrs = user.parse(resp, status, xhr);
+        user._finishFetch(serverAttrs);
+        user._handleSaveResult(true);
+        return user;
+
+      })._thenRunCallbacks(options, user);
     },
 
     /**
@@ -7085,12 +6020,12 @@
      */
     logOut: function() {
       if (Parse.User._currentUser !== null) {
-        Parse.User._currentUser._isCurrentUser = false;
         Parse.User._currentUser._logOutWithAll();
+        Parse.User._currentUser._isCurrentUser = false;
       }
       Parse.User._currentUserMatchesDisk = true;
       Parse.User._currentUser = null;
-      Ti.App.Properties.removeProperty(
+      Parse.localStorage.removeItem(
           Parse._getParsePath(Parse.User._CURRENT_USER_KEY));
     },
 
@@ -7127,17 +6062,17 @@
       }
 
       if (Parse.User._currentUserMatchesDisk) {
-        
+
         return Parse.User._currentUser;
       }
 
       // Load the user from local storage.
       Parse.User._currentUserMatchesDisk = true;
 
-      var userData = Ti.App.Properties.getString(Parse._getParsePath(
+      var userData = Parse.localStorage.getItem(Parse._getParsePath(
           Parse.User._CURRENT_USER_KEY));
       if (!userData) {
-        
+
         return null;
       }
       Parse.User._currentUser = Parse.Object._create("_User");
@@ -7157,6 +6092,18 @@
     },
 
     /**
+     * Allow someone to define a custom User class without className
+     * being rewritten to _User. The default behavior is to rewrite
+     * User to _User for legacy reasons. This allows developers to
+     * override that behavior.
+     *
+     * @param {Boolean} isAllowed Whether or not to allow custom User class
+     */
+    allowCustomUserClass: function(isAllowed) {
+      this._performUserRewrite = !isAllowed;
+    },
+
+    /**
      * Persists a user as currentUser to localStorage, and into the singleton.
      */
     _saveCurrentUser: function(user) {
@@ -7170,7 +6117,7 @@
       var json = user.toJSON();
       json._id = user.id;
       json._sessionToken = user._sessionToken;
-      Ti.App.Properties.setString(
+      Parse.localStorage.setItem(
           Parse._getParsePath(Parse.User._CURRENT_USER_KEY),
           JSON.stringify(json));
     },
@@ -7209,7 +6156,7 @@
    * <code>find</code> method. For example, this sample code fetches all objects
    * of class <code>MyClass</code>. It calls a different function depending on
    * whether the fetch succeeded or not.
-   * 
+   *
    * <pre>
    * var query = new Parse.Query(MyClass);
    * query.find({
@@ -7221,12 +6168,12 @@
    *     // error is an instance of Parse.Error.
    *   }
    * });</pre></p>
-   * 
+   *
    * <p>A Parse.Query can also be used to retrieve a single object whose id is
    * known, through the get method. For example, this sample code fetches an
    * object of class <code>MyClass</code> and id <code>myId</code>. It calls a
    * different function depending on whether the fetch succeeded or not.
-   * 
+   *
    * <pre>
    * var query = new Parse.Query(MyClass);
    * query.get(myId, {
@@ -7238,7 +6185,7 @@
    *     // error is an instance of Parse.Error.
    *   }
    * });</pre></p>
-   * 
+   *
    * <p>A Parse.Query can also be used to count the number of objects that match
    * the query without retrieving all of those objects. For example, this
    * sample code counts the number of objects of the class <code>MyClass</code>
@@ -7425,7 +6372,7 @@
       params.count = 1;
       var request = Parse._request({
         route: "classes",
-        className: self.className, 
+        className: self.className,
         method: "GET",
         useMasterKey: options.useMasterKey,
         data: params
@@ -7461,7 +6408,7 @@
       params.limit = 1;
       var request = Parse._request({
         route: "classes",
-        className: this.className, 
+        className: this.className,
         method: "GET",
         useMasterKey: options.useMasterKey,
         data: params
@@ -7529,7 +6476,7 @@
     equalTo: function(key, value) {
       if (_.isUndefined(value)) {
         return this.doesNotExist(key);
-      } 
+      }
 
       this._where[key] = Parse._encode(value);
       return this;
@@ -7675,7 +6622,7 @@
     matches: function(key, regex, modifiers) {
       this._addCondition(key, "$regex", regex);
       if (!modifiers) { modifiers = ""; }
-      // Javascript regex options support mig as inline options but store them 
+      // Javascript regex options support mig as inline options but store them
       // as properties of the object. We support mi & should migrate them to
       // modifiers
       if (regex.ignoreCase) { modifiers += 'i'; }
@@ -7816,7 +6763,7 @@
 
     /**
      * Sorts the results in ascending order by the given key.
-     * 
+     *
      * @param {String} key The key to order by.
      * @return {Parse.Query} Returns the query, so you can chain this call.
      */
@@ -7827,7 +6774,7 @@
 
     /**
      * Sorts the results in descending order by the given key.
-     * 
+     *
      * @param {String} key The key to order by.
      * @return {Parse.Query} Returns the query, so you can chain this call.
      */
@@ -8017,6 +6964,585 @@
 
 }(this));
 
+/*global FB: false , console: false*/
+(function(root) {
+  root.Parse = root.Parse || {};
+  var Parse = root.Parse;
+  var _ = Parse._;
+
+  var PUBLIC_KEY = "*";
+
+  var initialized = false;
+  var requestedPermissions;
+  var initOptions;
+  var provider = {
+    authenticate: function(options) {
+      var self = this;
+      FB.login(function(response) {
+        if (response.authResponse) {
+          if (options.success) {
+            options.success(self, {
+              id: response.authResponse.userID,
+              access_token: response.authResponse.accessToken,
+              expiration_date: new Date(response.authResponse.expiresIn * 1000 +
+                  (new Date()).getTime()).toJSON()
+            });
+          }
+        } else {
+          if (options.error) {
+            options.error(self, response);
+          }
+        }
+      }, {
+        scope: requestedPermissions
+      });
+    },
+    restoreAuthentication: function(authData) {
+      if (authData) {
+        var authResponse = {
+          userID: authData.id,
+          accessToken: authData.access_token,
+          expiresIn: (Parse._parseDate(authData.expiration_date).getTime() -
+              (new Date()).getTime()) / 1000
+        };
+        var newOptions = _.clone(initOptions);
+        newOptions.authResponse = authResponse;
+
+        // Suppress checks for login status from the browser.
+        newOptions.status = false;
+
+        // If the user doesn't match the one known by the FB SDK, log out.
+        // Most of the time, the users will match -- it's only in cases where
+        // the FB SDK knows of a different user than the one being restored
+        // from a Parse User that logged in with username/password.
+        var existingResponse = FB.getAuthResponse();
+        if (existingResponse &&
+            existingResponse.userID !== authResponse.userID) {
+          FB.logout();
+        }
+
+        FB.init(newOptions);
+      }
+      return true;
+    },
+    getAuthType: function() {
+      return "facebook";
+    },
+    deauthenticate: function() {
+      this.restoreAuthentication(null);
+    }
+  };
+
+  /**
+   * Provides a set of utilities for using Parse with Facebook.
+   * @namespace
+   * Provides a set of utilities for using Parse with Facebook.
+   */
+  Parse.FacebookUtils = {
+    /**
+     * Initializes Parse Facebook integration.  Call this function after you
+     * have loaded the Facebook Javascript SDK with the same parameters
+     * as you would pass to<code>
+     * <a href=
+     * "https://developers.facebook.com/docs/reference/javascript/FB.init/">
+     * FB.init()</a></code>.  Parse.FacebookUtils will invoke FB.init() for you
+     * with these arguments.
+     *
+     * @param {Object} options Facebook options argument as described here:
+     *   <a href=
+     *   "https://developers.facebook.com/docs/reference/javascript/FB.init/">
+     *   FB.init()</a>. The status flag will be coerced to 'false' because it
+     *   interferes with Parse Facebook integration. Call FB.getLoginStatus()
+     *   explicitly if this behavior is required by your application.
+     */
+    init: function(options) {
+      if (typeof(FB) === 'undefined') {
+        throw "The Facebook JavaScript SDK must be loaded before calling init.";
+      }
+      initOptions = _.clone(options) || {};
+      if (initOptions.status && typeof(console) !== "undefined") {
+        var warn = console.warn || console.log || function() {};
+        warn.call(console, "The 'status' flag passed into" +
+          " FB.init, when set to true, can interfere with Parse Facebook" +
+          " integration, so it has been suppressed. Please call" +
+          " FB.getLoginStatus() explicitly if you require this behavior.");
+      }
+      initOptions.status = false;
+      FB.init(initOptions);
+      Parse.User._registerAuthenticationProvider(provider);
+      initialized = true;
+    },
+
+    /**
+     * Gets whether the user has their account linked to Facebook.
+     *
+     * @param {Parse.User} user User to check for a facebook link.
+     *     The user must be logged in on this device.
+     * @return {Boolean} <code>true</code> if the user has their account
+     *     linked to Facebook.
+     */
+    isLinked: function(user) {
+      return user._isLinked("facebook");
+    },
+
+    /**
+     * Logs in a user using Facebook. This method delegates to the Facebook
+     * SDK to authenticate the user, and then automatically logs in (or
+     * creates, in the case where it is a new user) a Parse.User.
+     *
+     * @param {String, Object} permissions The permissions required for Facebook
+     *    log in.  This is a comma-separated string of permissions.
+     *    Alternatively, supply a Facebook authData object as described in our
+     *    REST API docs if you want to handle getting facebook auth tokens
+     *    yourself.
+     * @param {Object} options Standard options object with success and error
+     *    callbacks.
+     */
+    logIn: function(permissions, options) {
+      if (!permissions || _.isString(permissions)) {
+        if (!initialized) {
+          throw "You must initialize FacebookUtils before calling logIn.";
+        }
+        requestedPermissions = permissions;
+        return Parse.User._logInWith("facebook", options);
+      } else {
+        var newOptions = _.clone(options) || {};
+        newOptions.authData = permissions;
+        return Parse.User._logInWith("facebook", newOptions);
+      }
+    },
+
+    /**
+     * Links Facebook to an existing PFUser. This method delegates to the
+     * Facebook SDK to authenticate the user, and then automatically links
+     * the account to the Parse.User.
+     *
+     * @param {Parse.User} user User to link to Facebook. This must be the
+     *     current user.
+     * @param {String, Object} permissions The permissions required for Facebook
+     *    log in.  This is a comma-separated string of permissions.
+     *    Alternatively, supply a Facebook authData object as described in our
+     *    REST API docs if you want to handle getting facebook auth tokens
+     *    yourself.
+     * @param {Object} options Standard options object with success and error
+     *    callbacks.
+     */
+    link: function(user, permissions, options) {
+      if (!permissions || _.isString(permissions)) {
+        if (!initialized) {
+          throw "You must initialize FacebookUtils before calling link.";
+        }
+        requestedPermissions = permissions;
+        return user._linkWith("facebook", options);
+      } else {
+        var newOptions = _.clone(options) || {};
+        newOptions.authData = permissions;
+        return user._linkWith("facebook", newOptions);
+      }
+    },
+
+    /**
+     * Unlinks the Parse.User from a Facebook account.
+     *
+     * @param {Parse.User} user User to unlink from Facebook. This must be the
+     *     current user.
+     * @param {Object} options Standard options object with success and error
+     *    callbacks.
+     */
+    unlink: function(user, options) {
+      if (!initialized) {
+        throw "You must initialize FacebookUtils before calling unlink.";
+      }
+      return user._unlinkFrom("facebook", options);
+    }
+  };
+
+}(this));
+
+/*global _: false, document: false, window: false, navigator: false */
+(function(root) {
+  root.Parse = root.Parse || {};
+  var Parse = root.Parse;
+  var _ = Parse._;
+
+  /**
+   * History serves as a global router (per frame) to handle hashchange
+   * events or pushState, match the appropriate route, and trigger
+   * callbacks. You shouldn't ever have to create one of these yourself
+   * — you should use the reference to <code>Parse.history</code>
+   * that will be created for you automatically if you make use of
+   * Routers with routes.
+   * @class
+   *
+   * <p>A fork of Backbone.History, provided for your convenience.  If you
+   * use this class, you must also include jQuery, or another library
+   * that provides a jQuery-compatible $ function.  For more information,
+   * see the <a href="http://documentcloud.github.com/backbone/#History">
+   * Backbone documentation</a>.</p>
+   * <p><strong><em>Available in the client SDK only.</em></strong></p>
+   */
+  Parse.History = function() {
+    this.handlers = [];
+    _.bindAll(this, 'checkUrl');
+  };
+
+  // Cached regex for cleaning leading hashes and slashes .
+  var routeStripper = /^[#\/]/;
+
+  // Cached regex for detecting MSIE.
+  var isExplorer = /msie [\w.]+/;
+
+  // Has the history handling already been started?
+  Parse.History.started = false;
+
+  // Set up all inheritable **Parse.History** properties and methods.
+  _.extend(Parse.History.prototype, Parse.Events,
+           /** @lends Parse.History.prototype */ {
+
+    // The default interval to poll for hash changes, if necessary, is
+    // twenty times a second.
+    interval: 50,
+
+    // Gets the true hash value. Cannot use location.hash directly due to bug
+    // in Firefox where location.hash will always be decoded.
+    getHash: function(windowOverride) {
+      var loc = windowOverride ? windowOverride.location : window.location;
+      var match = loc.href.match(/#(.*)$/);
+      return match ? match[1] : '';
+    },
+
+    // Get the cross-browser normalized URL fragment, either from the URL,
+    // the hash, or the override.
+    getFragment: function(fragment, forcePushState) {
+      if (Parse._isNullOrUndefined(fragment)) {
+        if (this._hasPushState || forcePushState) {
+          fragment = window.location.pathname;
+          var search = window.location.search;
+          if (search) {
+            fragment += search;
+          }
+        } else {
+          fragment = this.getHash();
+        }
+      }
+      if (!fragment.indexOf(this.options.root)) {
+        fragment = fragment.substr(this.options.root.length);
+      }
+      return fragment.replace(routeStripper, '');
+    },
+
+    /**
+     * Start the hash change handling, returning `true` if the current
+     * URL matches an existing route, and `false` otherwise.
+     */
+    start: function(options) {
+      if (Parse.History.started) {
+        throw new Error("Parse.history has already been started");
+      }
+      Parse.History.started = true;
+
+      // Figure out the initial configuration. Do we need an iframe?
+      // Is pushState desired ... is it available?
+      this.options = _.extend({}, {root: '/'}, this.options, options);
+      this._wantsHashChange = this.options.hashChange !== false;
+      this._wantsPushState = !!this.options.pushState;
+      this._hasPushState = !!(this.options.pushState &&
+                              window.history &&
+                              window.history.pushState);
+      var fragment = this.getFragment();
+      var docMode = document.documentMode;
+      var oldIE = (isExplorer.exec(navigator.userAgent.toLowerCase()) &&
+                   (!docMode || docMode <= 7));
+
+      if (oldIE) {
+        this.iframe = Parse.$('<iframe src="javascript:0" tabindex="-1" />')
+                      .hide().appendTo('body')[0].contentWindow;
+        this.navigate(fragment);
+      }
+
+      // Depending on whether we're using pushState or hashes, and whether
+      // 'onhashchange' is supported, determine how we check the URL state.
+      if (this._hasPushState) {
+        Parse.$(window).bind('popstate', this.checkUrl);
+      } else if (this._wantsHashChange &&
+                 ('onhashchange' in window) &&
+                 !oldIE) {
+        Parse.$(window).bind('hashchange', this.checkUrl);
+      } else if (this._wantsHashChange) {
+        this._checkUrlInterval = window.setInterval(this.checkUrl,
+                                                    this.interval);
+      }
+
+      // Determine if we need to change the base url, for a pushState link
+      // opened by a non-pushState browser.
+      this.fragment = fragment;
+      var loc = window.location;
+      var atRoot  = loc.pathname === this.options.root;
+
+      // If we've started off with a route from a `pushState`-enabled browser,
+      // but we're currently in a browser that doesn't support it...
+      if (this._wantsHashChange &&
+          this._wantsPushState &&
+          !this._hasPushState &&
+          !atRoot) {
+        this.fragment = this.getFragment(null, true);
+        window.location.replace(this.options.root + '#' + this.fragment);
+        // Return immediately as browser will do redirect to new url
+        return true;
+
+      // Or if we've started out with a hash-based route, but we're currently
+      // in a browser where it could be `pushState`-based instead...
+      } else if (this._wantsPushState &&
+                 this._hasPushState &&
+                 atRoot &&
+                 loc.hash) {
+        this.fragment = this.getHash().replace(routeStripper, '');
+        window.history.replaceState({}, document.title,
+            loc.protocol + '//' + loc.host + this.options.root + this.fragment);
+      }
+
+      if (!this.options.silent) {
+        return this.loadUrl();
+      }
+    },
+
+    // Disable Parse.history, perhaps temporarily. Not useful in a real app,
+    // but possibly useful for unit testing Routers.
+    stop: function() {
+      Parse.$(window).unbind('popstate', this.checkUrl)
+                     .unbind('hashchange', this.checkUrl);
+      window.clearInterval(this._checkUrlInterval);
+      Parse.History.started = false;
+    },
+
+    // Add a route to be tested when the fragment changes. Routes added later
+    // may override previous routes.
+    route: function(route, callback) {
+      this.handlers.unshift({route: route, callback: callback});
+    },
+
+    // Checks the current URL to see if it has changed, and if it has,
+    // calls `loadUrl`, normalizing across the hidden iframe.
+    checkUrl: function(e) {
+      var current = this.getFragment();
+      if (current === this.fragment && this.iframe) {
+        current = this.getFragment(this.getHash(this.iframe));
+      }
+      if (current === this.fragment) {
+        return false;
+      }
+      if (this.iframe) {
+        this.navigate(current);
+      }
+      if (!this.loadUrl()) {
+        this.loadUrl(this.getHash());
+      }
+    },
+
+    // Attempt to load the current URL fragment. If a route succeeds with a
+    // match, returns `true`. If no defined routes matches the fragment,
+    // returns `false`.
+    loadUrl: function(fragmentOverride) {
+      var fragment = this.fragment = this.getFragment(fragmentOverride);
+      var matched = _.any(this.handlers, function(handler) {
+        if (handler.route.test(fragment)) {
+          handler.callback(fragment);
+          return true;
+        }
+      });
+      return matched;
+    },
+
+    // Save a fragment into the hash history, or replace the URL state if the
+    // 'replace' option is passed. You are responsible for properly URL-encoding
+    // the fragment in advance.
+    //
+    // The options object can contain `trigger: true` if you wish to have the
+    // route callback be fired (not usually desirable), or `replace: true`, if
+    // you wish to modify the current URL without adding an entry to the
+    // history.
+    navigate: function(fragment, options) {
+      if (!Parse.History.started) {
+        return false;
+      }
+      if (!options || options === true) {
+        options = {trigger: options};
+      }
+      var frag = (fragment || '').replace(routeStripper, '');
+      if (this.fragment === frag) {
+        return;
+      }
+
+      // If pushState is available, we use it to set the fragment as a real URL.
+      if (this._hasPushState) {
+        if (frag.indexOf(this.options.root) !== 0) {
+          frag = this.options.root + frag;
+        }
+        this.fragment = frag;
+        var replaceOrPush = options.replace ? 'replaceState' : 'pushState';
+        window.history[replaceOrPush]({}, document.title, frag);
+
+      // If hash changes haven't been explicitly disabled, update the hash
+      // fragment to store history.
+      } else if (this._wantsHashChange) {
+        this.fragment = frag;
+        this._updateHash(window.location, frag, options.replace);
+        if (this.iframe &&
+            (frag !== this.getFragment(this.getHash(this.iframe)))) {
+          // Opening and closing the iframe tricks IE7 and earlier
+          // to push a history entry on hash-tag change.
+          // When replace is true, we don't want this.
+          if (!options.replace) {
+            this.iframe.document.open().close();
+          }
+          this._updateHash(this.iframe.location, frag, options.replace);
+        }
+
+      // If you've told us that you explicitly don't want fallback hashchange-
+      // based history, then `navigate` becomes a page refresh.
+      } else {
+        window.location.assign(this.options.root + fragment);
+      }
+      if (options.trigger) {
+        this.loadUrl(fragment);
+      }
+    },
+
+    // Update the hash location, either replacing the current entry, or adding
+    // a new one to the browser history.
+    _updateHash: function(location, fragment, replace) {
+      if (replace) {
+        var s = location.toString().replace(/(javascript:|#).*$/, '');
+        location.replace(s + '#' + fragment);
+      } else {
+        location.hash = fragment;
+      }
+    }
+  });
+}(this));
+
+/*global _: false*/
+(function(root) {
+  root.Parse = root.Parse || {};
+  var Parse = root.Parse;
+  var _ = Parse._;
+
+  /**
+   * Routers map faux-URLs to actions, and fire events when routes are
+   * matched. Creating a new one sets its `routes` hash, if not set statically.
+   * @class
+   *
+   * <p>A fork of Backbone.Router, provided for your convenience.
+   * For more information, see the
+   * <a href="http://documentcloud.github.com/backbone/#Router">Backbone
+   * documentation</a>.</p>
+   * <p><strong><em>Available in the client SDK only.</em></strong></p>
+   */
+  Parse.Router = function(options) {
+    options = options || {};
+    if (options.routes) {
+      this.routes = options.routes;
+    }
+    this._bindRoutes();
+    this.initialize.apply(this, arguments);
+  };
+
+  // Cached regular expressions for matching named param parts and splatted
+  // parts of route strings.
+  var namedParam    = /:\w+/g;
+  var splatParam    = /\*\w+/g;
+  var escapeRegExp  = /[\-\[\]{}()+?.,\\\^\$\|#\s]/g;
+
+  // Set up all inheritable **Parse.Router** properties and methods.
+  _.extend(Parse.Router.prototype, Parse.Events,
+           /** @lends Parse.Router.prototype */ {
+
+    /**
+     * Initialize is an empty function by default. Override it with your own
+     * initialization logic.
+     */
+    initialize: function(){},
+
+    /**
+     * Manually bind a single named route to a callback. For example:
+     *
+     * <pre>this.route('search/:query/p:num', 'search', function(query, num) {
+     *       ...
+     *     });</pre>
+     */
+    route: function(route, name, callback) {
+      Parse.history = Parse.history || new Parse.History();
+      if (!_.isRegExp(route)) {
+        route = this._routeToRegExp(route);
+      }
+      if (!callback) {
+        callback = this[name];
+      }
+      Parse.history.route(route, _.bind(function(fragment) {
+        var args = this._extractParameters(route, fragment);
+        if (callback) {
+          callback.apply(this, args);
+        }
+        this.trigger.apply(this, ['route:' + name].concat(args));
+        Parse.history.trigger('route', this, name, args);
+      }, this));
+      return this;
+    },
+
+    /**
+     * Whenever you reach a point in your application that you'd
+     * like to save as a URL, call navigate in order to update the
+     * URL. If you wish to also call the route function, set the
+     * trigger option to true. To update the URL without creating
+     * an entry in the browser's history, set the replace option
+     * to true.
+     */
+    navigate: function(fragment, options) {
+      Parse.history.navigate(fragment, options);
+    },
+
+    // Bind all defined routes to `Parse.history`. We have to reverse the
+    // order of the routes here to support behavior where the most general
+    // routes can be defined at the bottom of the route map.
+    _bindRoutes: function() {
+      if (!this.routes) {
+        return;
+      }
+      var routes = [];
+      for (var route in this.routes) {
+        if (this.routes.hasOwnProperty(route)) {
+          routes.unshift([route, this.routes[route]]);
+        }
+      }
+      for (var i = 0, l = routes.length; i < l; i++) {
+        this.route(routes[i][0], routes[i][1], this[routes[i][1]]);
+      }
+    },
+
+    // Convert a route string into a regular expression, suitable for matching
+    // against the current location hash.
+    _routeToRegExp: function(route) {
+      route = route.replace(escapeRegExp, '\\$&')
+                   .replace(namedParam, '([^\/]+)')
+                   .replace(splatParam, '(.*?)');
+      return new RegExp('^' + route + '$');
+    },
+
+    // Given a route, and a URL fragment that it matches, return the array of
+    // extracted parameters.
+    _extractParameters: function(route, fragment) {
+      return route.exec(fragment).slice(1);
+    }
+  });
+
+  /**
+   * @function
+   * @param {Object} instanceProps Instance properties for the router.
+   * @param {Object} classProps Class properies for the router.
+   * @return {Class} A new subclass of <code>Parse.Router</code>.
+   */
+  Parse.Router.extend = Parse._extend;
+}(this));
 (function(root) {
   root.Parse = root.Parse || {};
   var Parse = root.Parse;
@@ -8060,4 +7586,65 @@
       })._thenRunCallbacks(options);
     }
   });
+}(this));
+
+(function(root) {
+  root.Parse = root.Parse || {};
+  var Parse = root.Parse;
+
+  Parse.Installation = Parse.Object.extend("_Installation");
+
+  /**
+   * Contains functions to deal with Push in Parse
+   * @name Parse.Push
+   * @namespace
+   */
+  Parse.Push = Parse.Push || {};
+
+  /**
+   * Sends a push notification.
+   * @param {Object} data -  The data of the push notification.  Valid fields
+   * are:
+   *   <ol>
+   *     <li>channels - An Array of channels to push to.</li>
+   *     <li>push_time - A Date object for when to send the push.</li>
+   *     <li>expiration_time -  A Date object for when to expire
+   *         the push.</li>
+   *     <li>expiration_interval - The seconds from now to expire the push.</li>
+   *     <li>where - A Parse.Query over Parse.Installation that is used to match
+   *         a set of installations to push to.</li>
+   *     <li>data - The data to send as part of the push</li>
+   *   <ol>
+   * @param {Object} options An object that has an optional success function,
+   * that takes no arguments and will be called on a successful push, and
+   * an error function that takes a Parse.Error and will be called if the push
+   * failed.
+   */
+  Parse.Push.send = function(data, options) {
+    options = options || {};
+
+    if (data.where) {
+      data.where = data.where.toJSON().where;
+    }
+
+    if (data.push_time) {
+      data.push_time = data.push_time.toJSON();
+    }
+
+    if (data.expiration_time) {
+      data.expiration_time = data.expiration_time.toJSON();
+    }
+
+    if (data.expiration_time && data.expiration_time_interval) {
+      throw "Both expiration_time and expiration_time_interval can't be set";
+    }
+
+    var request = Parse._request({
+      route: 'push',
+      method: 'POST',
+      data: data,
+      useMasterKey: options.useMasterKey
+    });
+    return request._thenRunCallbacks(options);
+  };
 }(this));
